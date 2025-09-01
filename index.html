@@ -97,6 +97,7 @@
             border: 1px dashed #00ff00;
             padding: 10px;
             margin-bottom: 15px;
+            position: relative;
         }
         .post-header {
             display: flex;
@@ -105,6 +106,26 @@
             font-weight: bold;
             color: #ff00ff;
             text-shadow: 0 0 5px #ff00ff;
+        }
+        .delete-post-btn {
+            background: none;
+            border: 1px solid #ff0000;
+            color: #ff0000;
+            font-family: 'VT323', monospace;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0px 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            box-shadow: none;
+            width: auto;
+            text-shadow: none;
+        }
+        .delete-post-btn:hover {
+            background: #ff0000;
+            color: #000;
+            transform: none;
+            box-shadow: none;
         }
         .post-timestamp {
             font-size: 0.8em;
@@ -115,6 +136,7 @@
             margin-top: 5px;
             white-space: pre-wrap;
             word-wrap: break-word;
+            min-height: 1.2em; /* Reserve space for typing */
         }
         .file-link {
             display: block;
@@ -165,7 +187,7 @@
             <h2>NEW LOGICAL ENTRY</h2>
             <textarea id="post-text" placeholder="ENTER TEXT (MAX 256 CHARS)..." maxlength="256"></textarea>
             <label for="file-upload">UPLOAD FILE:</label>
-            <input type="file" id="file-upload">
+            <input type="file" id="file-upload" style="display:none;">
             <button id="post-button">SUBMIT ENTRY</button>
         </div>
 
@@ -185,6 +207,12 @@
         const postsContainer = document.getElementById('posts-container');
         const messageBox = document.getElementById('message-box');
 
+        let posts = [];
+
+        const savePosts = () => {
+            localStorage.setItem('createElementPosts', JSON.stringify(posts));
+        };
+
         const showMessage = (msg) => {
             messageBox.textContent = msg;
             messageBox.style.display = 'block';
@@ -193,28 +221,50 @@
             }, 3000);
         };
 
-        function addPost(text, file) {
+        const typeWriter = (element, text) => {
+            let i = 0;
+            element.innerHTML = '';
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i).replace(/\n/g, '<br>');
+                    i++;
+                    setTimeout(type, 30); // Typing speed
+                }
+            }
+            type();
+        };
+
+        const deletePost = (id) => {
+            posts = posts.filter(p => p.id !== id);
+            savePosts();
+            const postElement = document.getElementById(`post-${id}`);
+            if (postElement) {
+                postElement.remove();
+            }
+        };
+
+        function addPost(postData, enableTypingEffect) {
             const postElement = document.createElement('div');
             postElement.className = 'post';
+            postElement.id = `post-${postData.id}`;
 
-            const now = new Date();
-            const timestamp = `${now.toLocaleDateString('hr-HR')} ${now.toLocaleTimeString('hr-HR')}`;
+            const postDate = new Date(postData.timestamp);
+            const timestamp = `${postDate.toLocaleDateString('hr-HR')} ${postDate.toLocaleTimeString('hr-HR')}`;
 
             let fileHtml = '';
-            let isImage = file && file.type.startsWith('image/');
-
-            if (file) {
+            if (postData.fileData) {
+                const isImage = postData.fileType.startsWith('image/');
                 if (isImage) {
                     fileHtml = `
-                        <a href="#" class="file-link" onclick="toggleImage(this, '${URL.createObjectURL(file)}'); return false;">
-                            PRIKAŽI SLIKU: ${file.name}
+                        <a href="#" class="file-link" onclick="toggleImage(this, 'post-img-${postData.id}'); return false;">
+                            PRIKAŽI SLIKU: ${postData.fileName}
                         </a>
-                        <img src="" alt="Uploaded image" class="image-preview" style="display: none;">
+                        <img id="post-img-${postData.id}" src="${postData.fileData}" alt="${postData.fileName}" class="image-preview" style="display: none;">
                     `;
                 } else {
                     fileHtml = `
-                        <a href="${URL.createObjectURL(file)}" download="${file.name}" class="file-link">
-                            PREUZMI FAJL: ${file.name}
+                        <a href="${postData.fileData}" download="${postData.fileName}" class="file-link">
+                            PREUZMI FAJL: ${postData.fileName}
                         </a>
                     `;
                 }
@@ -222,26 +272,34 @@
 
             postElement.innerHTML = `
                 <div class="post-header">
-                    <span>USER: MATIJA_D</span>
-                    <span class="post-timestamp">[${timestamp}]</span>
+                    <div class="post-user-time">
+                        <span>USER: MATIJA_D</span>
+                        <span class="post-timestamp">[${timestamp}]</span>
+                    </div>
+                    <button class="delete-post-btn" onclick="deletePost(${postData.id})">X</button>
                 </div>
-                <div class="post-text">${text.replace(/\n/g, '<br>')}</div>
+                <div class="post-text"></div>
                 ${fileHtml}
             `;
 
             postsContainer.prepend(postElement);
+            const textElement = postElement.querySelector('.post-text');
+            
+            if (enableTypingEffect && postData.text) {
+                typeWriter(textElement, postData.text);
+            } else {
+                textElement.innerHTML = postData.text.replace(/\n/g, '<br>');
+            }
         }
 
-        window.toggleImage = (linkElement, imageUrl) => {
-            const imgElement = linkElement.nextElementSibling;
+        window.toggleImage = (linkElement, imageId) => {
+            const imgElement = document.getElementById(imageId);
             if (imgElement.style.display === 'none') {
-                imgElement.src = imageUrl;
                 imgElement.style.display = 'block';
                 linkElement.textContent = "SAKRIJ SLIKU";
             } else {
                 imgElement.style.display = 'none';
-                imgElement.src = '';
-                linkElement.textContent = "PRIKAŽI SLIKU";
+                imgElement.textContent = `PRIKAŽI SLIKU: ${imgElement.alt}`;
             }
         };
 
@@ -254,20 +312,66 @@
                 return;
             }
 
-            addPost(text, file);
-            
-            postText.value = '';
-            fileUpload.value = '';
-            showMessage("ENTRY SUBMITTED.");
+            const createAndAddPost = (fileData = null, fileName = null, fileType = null) => {
+                const newPost = {
+                    id: Date.now(),
+                    text: text,
+                    timestamp: new Date().toISOString(),
+                    fileData,
+                    fileName,
+                    fileType
+                };
+
+                posts.push(newPost);
+                savePosts();
+                addPost(newPost, true);
+                
+                postText.value = '';
+                fileUpload.value = '';
+                showMessage("ENTRY SUBMITTED.");
+            };
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    createAndAddPost(e.target.result, file.name, file.type);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                createAndAddPost();
+            }
         });
 
-        // Initial "mock" data
-        addPost("WELCOME TO THE LOGICAL INTERFACE OF createElement. THE FUTURE IS HERE.");
-        setTimeout(() => {
-            addPost("INITIALIZING DATA STREAMS. 404 DATA PACKETS FOUND.");
-        }, 1000);
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedPosts = JSON.parse(localStorage.getItem('createElementPosts')) || [];
+            posts = storedPosts;
+            postsContainer.innerHTML = '';
+            posts.forEach(post => addPost(post, false)); // Load without typing effect
+
+             if (posts.length === 0) {
+                // Add initial posts only if there's nothing in storage
+                 const welcomePost = {
+                    id: Date.now(),
+                    text: "WELCOME TO THE LOGICAL INTERFACE OF createElement. THE FUTURE IS HERE.",
+                    timestamp: new Date().toISOString()
+                };
+                posts.push(welcomePost);
+                addPost(welcomePost, true);
+
+                setTimeout(() => {
+                    const dataPost = {
+                        id: Date.now() + 1,
+                        text: "INITIALIZING DATA STREAMS. 404 DATA PACKETS FOUND.",
+                        timestamp: new Date().toISOString()
+                    };
+                    posts.push(dataPost);
+                    addPost(dataPost, true);
+                    savePosts();
+                }, 2000);
+            }
+        });
+
     </script>
 </body>
 </html>
-
 
