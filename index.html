@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>createElement</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'VT323', monospace;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+            padding: 15px;
+            animation: flicker 1.5s infinite alternate;
+        }
+        @keyframes flicker {
+            0% { box-shadow: 0 0 15px #00ff00; }
+            100% { box-shadow: 0 0 17px #00ff00; }
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: #00ffff;
+            text-shadow: 0 0 7px #00ffff;
+            margin-top: 0;
+            border-bottom: 1px dashed #00ff00;
+            padding-bottom: 5px;
+        }
+        .post-input, .post-container {
+            margin-top: 20px;
+        }
+        textarea, input[type="file"], button {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'VT323', monospace;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #00ff00;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        .post {
+            border: 1px dashed #00ff00;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        .post-timestamp {
+            font-size: 0.8em;
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        .post-text {
+            margin-top: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .file-link {
+            display: block;
+            margin-top: 10px;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .file-link:hover {
+            text-decoration: underline;
+        }
+        .image-preview {
+            max-width: 100%;
+            margin-top: 10px;
+            border: 1px dashed #00ffff;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ff0000;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 15px;
+            z-index: 100;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><<< createElement >>></h1>
+        <h3>THE LOGICAL COMPONENT INTERFACE</h3>
+
+        <!-- Message Box -->
+        <div id="message-box" class="message-box"></div>
+
+        <!-- Input Section -->
+        <div class="post-input">
+            <h2>NEW LOGICAL ENTRY</h2>
+            <textarea id="post-text" placeholder="ENTER TEXT (MAX 256 CHARS)..." maxlength="256"></textarea>
+            <label for="file-upload">UPLOAD FILE:</label>
+            <input type="file" id="file-upload">
+            <button id="post-button">SUBMIT ENTRY</button>
+        </div>
+
+        <!-- Feed Section -->
+        <div class="post-container">
+            <h2>ENTRY FEED</h2>
+            <div id="posts-container">
+                <!-- Posts will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const postText = document.getElementById('post-text');
+        const fileUpload = document.getElementById('file-upload');
+        const postButton = document.getElementById('post-button');
+        const postsContainer = document.getElementById('posts-container');
+        const messageBox = document.getElementById('message-box');
+
+        const showMessage = (msg) => {
+            messageBox.textContent = msg;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000);
+        };
+
+        function addPost(text, file) {
+            const postElement = document.createElement('div');
+            postElement.className = 'post';
+
+            const now = new Date();
+            const timestamp = `${now.toLocaleDateString('hr-HR')} ${now.toLocaleTimeString('hr-HR')}`;
+
+            let fileHtml = '';
+            let isImage = file && file.type.startsWith('image/');
+
+            if (file) {
+                if (isImage) {
+                    fileHtml = `
+                        <a href="#" class="file-link" onclick="toggleImage(this, '${URL.createObjectURL(file)}'); return false;">
+                            PRIKAŽI SLIKU: ${file.name}
+                        </a>
+                        <img src="" alt="Uploaded image" class="image-preview" style="display: none;">
+                    `;
+                } else {
+                    fileHtml = `
+                        <a href="${URL.createObjectURL(file)}" download="${file.name}" class="file-link">
+                            PREUZMI FAJL: ${file.name}
+                        </a>
+                    `;
+                }
+            }
+
+            postElement.innerHTML = `
+                <div class="post-header">
+                    <span>USER: MATIJA_D</span>
+                    <span class="post-timestamp">[${timestamp}]</span>
+                </div>
+                <div class="post-text">${text.replace(/\n/g, '<br>')}</div>
+                ${fileHtml}
+            `;
+
+            postsContainer.prepend(postElement);
+        }
+
+        window.toggleImage = (linkElement, imageUrl) => {
+            const imgElement = linkElement.nextElementSibling;
+            if (imgElement.style.display === 'none') {
+                imgElement.src = imageUrl;
+                imgElement.style.display = 'block';
+                linkElement.textContent = "SAKRIJ SLIKU";
+            } else {
+                imgElement.style.display = 'none';
+                imgElement.src = '';
+                linkElement.textContent = "PRIKAŽI SLIKU";
+            }
+        };
+
+        postButton.addEventListener('click', () => {
+            const text = postText.value.trim();
+            const file = fileUpload.files[0];
+
+            if (!text && !file) {
+                showMessage("ERROR: PLEASE ENTER TEXT OR SELECT FILE!");
+                return;
+            }
+
+            addPost(text, file);
+            
+            postText.value = '';
+            fileUpload.value = '';
+            showMessage("ENTRY SUBMITTED.");
+        });
+
+        // Initial "mock" data
+        addPost("WELCOME TO THE LOGICAL INTERFACE OF createElement. THE FUTURE IS HERE.");
+        setTimeout(() => {
+            addPost("INITIALIZING DATA STREAMS. 404 DATA PACKETS FOUND.");
+        }, 1000);
+    </script>
+</body>
+</html>
