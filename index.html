@@ -2,50 +2,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Pixel Art & Sound Generator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>createElement Cloud Feed</title>
     <style>
         body { background: #000; color:#00ff00; font-family: 'VT323', monospace; }
-        /* Dodaj svoje stilove ovdje */
+        .container { max-width: 800px; margin: 0 auto; padding: 24px; text-align: center; }
+        h1, h2 { margin: 16px 0; }
+        textarea, input[type="file"], input[type="text"] { width: 98%; margin: 4px 0; background:#111; color:#00ff00; border:1px solid #00ff00; font-family:'VT323',monospace; font-size:16px;}
+        button { background: #111; color: #00ff00; border: 1px solid #00ff00; font-family: 'VT323', monospace; font-size: 18px; margin: 8px 0; padding: 6px 18px; cursor: pointer; }
+        button:hover { background: #222; color: #fff; border-color: #fff;}
+        .post { border:1px dashed #00ff00; padding:10px; margin-bottom:10px; text-align:left;}
+        .post-header { font-weight:bold; }
+        .post-timestamp { float:right; }
+        .post-text { margin: 7px 0; white-space: pre-line;}
+        img { max-width: 100%; margin-top: 10px; border:1px solid #00ff00;}
+        a { color:#00ffff; }
+        #message-box { display:none; background:#222; color:#fff; padding:10px; margin-bottom:12px; border-radius:5px;}
+        .sound-buttons { margin-top:28px; margin-bottom:18px;}
+        .sound-buttons button { margin-left:8px;}
+        .pixel-art-section { margin:24px 0; }
+        #pixel-grid { border:2px solid #00ff00; display:inline-block; background:#333; }
+        .pixel-row { display:flex; }
+        .pixel-cell { width:22px; height:22px; border:1px solid #222; box-sizing:border-box; cursor:pointer; }
+        .palette { margin:8px 0 12px 0; }
+        .palette button { width:30px; height:30px; margin:3px; border-radius:6px; border:2px solid #00ff00;}
+        .palette .selected { border:3px solid #fff;}
+        #pixel-theme { margin-bottom:8px; font-size:19px; color:#fff; }
+        .input-theme { margin-bottom:12px; }
+        @media (max-width:800px) { .container {padding:8px;} .pixel-cell {width:16px;height:16px;} }
     </style>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"></script>
 </head>
 <body>
     <div class="container">
         <button id="change-user">PROMIJENI USER</button>
-        <h1><<< createElement CLOUD FEED >>></h1>
-        <div id="message-box" style="display:none; background:#222; color:#fff; padding:10px;"></div>
+        <h1>Pixel Art & Sound Generator</h1>
+        <div id="message-box"></div>
+        <!-- Sound Buttons -->
+        <div class="sound-buttons">
+            <button id="atari-sound-btn">► ATARI BEEP</button>
+            <button id="laser-sound-btn">► LASER</button>
+            <button id="explosion-sound-btn">► EXPLOSION</button>
+            <button id="melody-sound-btn">► RANDOM MELODY</button>
+            <button id="space-sound-btn">► SPACE NOISE</button>
+        </div>
+
+        <!-- Pixel Art Section -->
+        <div class="pixel-art-section">
+            <div class="input-theme">
+                <input type="text" id="theme-input" placeholder="Upiši ŠTO da netko nacrta...">
+                <button id="set-theme">Postavi temu</button>
+            </div>
+            <div id="pixel-theme"></div>
+            <div class="palette" id="palette"></div>
+            <div id="pixel-grid"></div>
+            <button id="clear-pixel">Obriši crtež</button>
+        </div>
+
+        <!-- Feed Section -->
         <div class="post-input">
-            <h2>NEW LOGICAL ENTRY</h2>
-            <textarea id="post-text" placeholder="ENTER TEXT (MAX 256 CHARS)..." maxlength="256"></textarea>
-            <label for="file-upload">UPLOAD FILE:</label>
-            <input type="file" id="file-upload">
+            <h2>CHAT FEED</h2>
+            <textarea id="post-text" placeholder="CHAT (MAX 256 CHARS)..." maxlength="256"></textarea>
             <button id="post-button">SUBMIT ENTRY</button>
         </div>
         <div class="post-container">
-            <h2>GLOBAL ENTRY FEED</h2>
             <div id="posts-container"></div>
         </div>
     </div>
     <script>
-        // ---- Firebase CONFIG ----
-        const firebaseConfig = {
-            apiKey: "AIzaSyAwh1io8RvgYS2woaVOnanWYgHItWau6d0",
-            authDomain: "abs21-b44e4.firebaseapp.com",
-            projectId: "abs21-b44e4",
-            storageBucket: "abs21-b44e4.appspot.com",
-            messagingSenderId: "647568004929",
-            appId: "1:647568004929:web:396f5a492fae455a4fb3c0",
-            measurementId: "G-LQ308C1VBJ"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        let currentUser = localStorage.getItem('user') || 'MATIJA_D';
+        // --- USER & CHAT ---
+        let currentUser = localStorage.getItem('user') || 'PIXEL_MAT';
+        let posts = JSON.parse(localStorage.getItem('localPosts') || '[]');
 
         function showMessage(msg) {
             const mb = document.getElementById('message-box');
@@ -53,7 +79,21 @@
             mb.style.display = 'block';
             setTimeout(() => { mb.style.display = 'none'; }, 3000);
         }
-
+        function redrawPosts() {
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '';
+            posts.slice().reverse().forEach(post => {
+                postsContainer.innerHTML += `
+                <div class="post">
+                    <div class="post-header">
+                        <span>USER: ${post.user}</span>
+                        <span class="post-timestamp">[${(new Date(post.timestamp)).toLocaleString('hr-HR')}]</span>
+                    </div>
+                    <div class="post-text">${(post.text||'').replace(/\n/g,'<br>')}</div>
+                </div>
+                `;
+            });
+        }
         document.getElementById('change-user').onclick = function() {
             const user = prompt('Unesi svoj nadimak:', currentUser);
             if (user) {
@@ -62,61 +102,175 @@
                 showMessage('User set: ' + currentUser);
             }
         };
-
-        document.getElementById('post-button').onclick = async function() {
+        document.getElementById('post-button').onclick = function() {
             const text = document.getElementById('post-text').value.trim();
-            const file = document.getElementById('file-upload').files[0];
-            if (!text && !file) {
-                showMessage("ERROR: PLEASE ENTER TEXT OR SELECT FILE!");
+            if (!text) {
+                showMessage("ERROR: PLEASE ENTER TEXT!");
                 return;
             }
-            let fileData = null;
-            if (file) {
-                const storageRef = storage.ref('files/' + Date.now() + '_' + file.name);
-                await storageRef.put(file);
-                const fileUrl = await storageRef.getDownloadURL();
-                fileData = {
-                    name: file.name,
-                    type: file.type,
-                    url: fileUrl
-                };
-            }
-            await db.collection('posts').add({
+            posts.push({
                 user: currentUser,
                 timestamp: new Date().toISOString(),
-                text: text,
-                file: fileData
+                text: text
             });
+            localStorage.setItem('localPosts', JSON.stringify(posts));
             showMessage("ENTRY SUBMITTED.");
             document.getElementById('post-text').value = '';
-            document.getElementById('file-upload').value = '';
+            redrawPosts();
+        };
+        redrawPosts();
+
+        // --- SOUND BUTTONS ---
+        document.getElementById('atari-sound-btn').onclick = function() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = 440;
+            gain.gain.value = 0.2;
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start();
+            setTimeout(() => { osc.stop(); ctx.close(); }, 180);
+        };
+        document.getElementById('laser-sound-btn').onclick = function() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(1200, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.27);
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.28);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+            osc.onended = () => ctx.close();
+        };
+        document.getElementById('explosion-sound-btn').onclick = function() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2.5);
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.45, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+            noise.connect(gain); gain.connect(ctx.destination);
+            noise.start();
+            noise.stop(ctx.currentTime + 0.41);
+            noise.onended = () => ctx.close();
+        };
+        document.getElementById('melody-sound-btn').onclick = function() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const notes = [220, 330, 440, 660, 880, 990, 1244, 1760];
+            let t = ctx.currentTime;
+            for (let i = 0; i < 12; i++) {
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
+                osc.type = ['square','triangle','sawtooth'][Math.floor(Math.random()*3)];
+                osc.frequency.value = notes[Math.floor(Math.random()*notes.length)];
+                gain.gain.value = 0.15;
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t + i*0.22);
+                osc.stop(t + i*0.22 + 0.18);
+                osc.onended = () => gain.disconnect();
+            }
+            setTimeout(() => ctx.close(), 3000);
+        };
+        document.getElementById('space-sound-btn').onclick = function() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.7, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = Math.sin(i * 0.023) * Math.random() * (1 - i / data.length);
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.7);
+            noise.connect(gain); gain.connect(ctx.destination);
+            noise.start();
+            noise.stop(ctx.currentTime + 0.71);
+            noise.onended = () => ctx.close();
         };
 
-        db.collection('posts').orderBy('timestamp','desc').onSnapshot(snapshot => {
-            const postsContainer = document.getElementById('posts-container');
-            postsContainer.innerHTML = '';
-            snapshot.forEach(doc => {
-                const post = doc.data();
-                let fileHtml = '';
-                if (post.file) {
-                    if (post.file.type && post.file.type.startsWith('image/')) {
-                        fileHtml = `<img src="${post.file.url}" alt="Uploaded image" style="max-width:100%;margin-top:10px;">`;
-                    } else {
-                        fileHtml = `<a href="${post.file.url}" download="${post.file.name}" style="color:#00ffff;">PREUZMI FAJL: ${post.file.name}</a>`;
-                    }
-                }
-                postsContainer.innerHTML += `
-                <div class="post" style="border:1px dashed #00ff00; padding:10px; margin-bottom:10px;">
-                    <div class="post-header" style="font-weight:bold;">
-                        <span>USER: ${post.user}</span>
-                        <span style="float:right;">[${(new Date(post.timestamp)).toLocaleString('hr-HR')}]</span>
-                    </div>
-                    <div class="post-text">${(post.text||'').replace(/\n/g,'<br>')}</div>
-                    ${fileHtml}
-                </div>
-                `;
+        // --- PIXEL ART GRID ---
+        const gridSize = 16;
+        const defaultColor = '#222';
+        const paletteColors = ["#00ff00", "#fff", "#ff0000", "#0000ff", "#ffff00", "#ff00ff", "#00ffff", "#222", "#ffa500"];
+        let selectedColor = localStorage.getItem('pixelColor') || paletteColors[0];
+        let pixelData = JSON.parse(localStorage.getItem('pixelGrid') || 'null');
+        if (!pixelData) {
+            pixelData = Array(gridSize).fill().map(()=>Array(gridSize).fill(defaultColor));
+        }
+
+        // Palette
+        function drawPalette() {
+            const paletteDiv = document.getElementById('palette');
+            paletteDiv.innerHTML = '';
+            paletteColors.forEach(col => {
+                const btn = document.createElement('button');
+                btn.style.background = col;
+                btn.className = col === selectedColor ? 'selected' : '';
+                btn.onclick = () => {
+                    selectedColor = col;
+                    localStorage.setItem('pixelColor', selectedColor);
+                    drawPalette();
+                };
+                paletteDiv.appendChild(btn);
             });
-        });
+        }
+        drawPalette();
+
+        // Theme
+        let pixelTheme = localStorage.getItem('pixelTheme') || '';
+        function updateThemeDisplay() {
+            document.getElementById('pixel-theme').textContent = pixelTheme ? 'Tema: ' + pixelTheme : '';
+        }
+        updateThemeDisplay();
+
+        document.getElementById('set-theme').onclick = function() {
+            const val = document.getElementById('theme-input').value.trim();
+            if (val) {
+                pixelTheme = val;
+                localStorage.setItem('pixelTheme', pixelTheme);
+                document.getElementById('theme-input').value = '';
+                updateThemeDisplay();
+            }
+        };
+
+        // Grid
+        function drawGrid() {
+            const gridDiv = document.getElementById('pixel-grid');
+            gridDiv.innerHTML = '';
+            for (let y=0; y<gridSize; y++) {
+                const row = document.createElement('div');
+                row.className = 'pixel-row';
+                for (let x=0; x<gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'pixel-cell';
+                    cell.style.background = pixelData[y][x];
+                    cell.onclick = function() {
+                        pixelData[y][x] = selectedColor;
+                        cell.style.background = selectedColor;
+                        localStorage.setItem('pixelGrid', JSON.stringify(pixelData));
+                    };
+                    row.appendChild(cell);
+                }
+                gridDiv.appendChild(row);
+            }
+        }
+        drawGrid();
+
+        document.getElementById('clear-pixel').onclick = function() {
+            pixelData = Array(gridSize).fill().map(()=>Array(gridSize).fill(defaultColor));
+            localStorage.setItem('pixelGrid', JSON.stringify(pixelData));
+            drawGrid();
+        };
     </script>
 </body>
 </html>
