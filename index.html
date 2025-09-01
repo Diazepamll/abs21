@@ -61,7 +61,7 @@
         <!-- Feed Section -->
         <div class="post-input">
             <h2>CHAT FEED</h2>
-            <textarea id="post-text" placeholder="CHAT (MAX 256 CHARS)..." maxlength="256"></textarea>
+            <textarea id="post-text" placeholder="CHAT (MAX 256 ZNAKOVA)..." maxlength="256"></textarea>
             <button id="post-button">SUBMIT ENTRY</button>
         </div>
         <div class="post-container">
@@ -82,7 +82,7 @@
         function redrawPosts() {
             const postsContainer = document.getElementById('posts-container');
             postsContainer.innerHTML = '';
-            posts.slice().reverse().forEach(post => {
+            posts.forEach(post => {
                 postsContainer.innerHTML += `
                 <div class="post">
                     <div class="post-header">
