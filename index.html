@@ -3,150 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>createElement</title>
+    <title>createElement Cloud Feed</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-        body {
-            background-color: #000;
-            color: #00ff00;
-            font-family: 'VT323', monospace;
-            padding: 20px;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            text-shadow: 0 0 5px #00ff00;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-            border: 2px solid #00ff00;
-            box-shadow: 0 0 15px #00ff00;
-            padding: 15px;
-            animation: flicker 1.5s infinite alternate;
-        }
-        @keyframes flicker {
-            0% { box-shadow: 0 0 15px #00ff00; }
-            100% { box-shadow: 0 0 17px #00ff00; }
-        }
-        h1, h2, h3 {
-            text-align: center;
-            color: #00ffff;
-            text-shadow: 0 0 7px #00ffff;
-            margin-top: 0;
-            border-bottom: 1px dashed #00ff00;
-            padding-bottom: 5px;
-        }
-        .user-btn {
-            margin-bottom: 15px;
-            width: 100%;
-            background-color: #222;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            font-family: 'VT323', monospace;
-            font-size: 1em;
-            padding: 7px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .user-btn:hover {
-            background-color: #00ff00;
-            color: #000;
-            box-shadow: 0 0 10px #00ff00;
-        }
-        .post-input, .post-container {
-            margin-top: 20px;
-        }
-        textarea, input[type="file"], button {
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #000;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            font-family: 'VT323', monospace;
-            padding: 8px;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #00ff00;
-            color: #000;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #00ff00;
-            color: #000;
-            box-shadow: 0 0 10px #00ff00;
-        }
-        .post {
-            border: 1px dashed #00ff00;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        .post-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            color: #ff00ff;
-            text-shadow: 0 0 5px #ff00ff;
-        }
-        .post-timestamp {
-            font-size: 0.8em;
-            color: #ffff00;
-            text-shadow: 0 0 5px #ffff00;
-        }
-        .post-text {
-            margin-top: 5px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .file-link {
-            display: block;
-            margin-top: 10px;
-            color: #00ffff;
-            text-shadow: 0 0 5px #00ffff;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .file-link:hover {
-            text-decoration: underline;
-        }
-        .image-preview {
-            max-width: 100%;
-            margin-top: 10px;
-            border: 1px dashed #00ffff;
-            animation: pulse 1s infinite alternate;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.02); }
-        }
-        .message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ff0000;
-            color: #fff;
-            border: 2px solid #fff;
-            padding: 15px;
-            z-index: 100;
-            display: none;
-            text-align: center;
-        }
+        body { background: #000; color:#00ff00; font-family: 'VT323', monospace; }
+        /* Dodaj svoje stilove ovdje */
     </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"></script>
 </head>
 <body>
     <div class="container">
-        <button class="user-btn" id="change-user">PROMIJENI USER</button>
-        <h1><<< createElement >>></h1>
-        <h3>THE LOGICAL COMPONENT INTERFACE</h3>
-        <!-- Message Box -->
-        <div id="message-box" class="message-box"></div>
-        <!-- Input Section -->
+        <button id="change-user">PROMIJENI USER</button>
+        <h1><<< createElement CLOUD FEED >>></h1>
+        <div id="message-box" style="display:none; background:#222; color:#fff; padding:10px;"></div>
         <div class="post-input">
             <h2>NEW LOGICAL ENTRY</h2>
             <textarea id="post-text" placeholder="ENTER TEXT (MAX 256 CHARS)..." maxlength="256"></textarea>
@@ -154,239 +25,98 @@
             <input type="file" id="file-upload">
             <button id="post-button">SUBMIT ENTRY</button>
         </div>
-        <!-- Feed Section -->
         <div class="post-container">
-            <h2>ENTRY FEED</h2>
-            <div id="posts-container">
-                <!-- Posts will be dynamically added here -->
-            </div>
-        </div>
-        <!-- Atari sound button -->
-        <div style="margin-top:30px; text-align:center;">
-            <button id="atari-sound-btn" style="width:auto;">► ATARI SOUND</button>
-        </div>
-        <!-- Random 5 min song button -->
-        <div style="margin-top:10px; text-align:center;">
-            <button id="random-song-btn" style="width:auto;">► RANDOM 5 MIN SONG</button>
-            <div id="song-status" style="color:#00ffff; margin-top:8px;"></div>
+            <h2>GLOBAL ENTRY FEED</h2>
+            <div id="posts-container"></div>
         </div>
     </div>
     <script>
-        // --- NOVO: PERSISTENCIJA I USER ---
-        let posts = [];
+        // ---- Firebase CONFIG ----
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwh1io8RvgYS2woaVOnanWYgHItWau6d0",
+            authDomain: "abs21-b44e4.firebaseapp.com",
+            projectId: "abs21-b44e4",
+            storageBucket: "abs21-b44e4.appspot.com",
+            messagingSenderId: "647568004929",
+            appId: "1:647568004929:web:396f5a492fae455a4fb3c0",
+            measurementId: "G-LQ308C1VBJ"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
         let currentUser = localStorage.getItem('user') || 'MATIJA_D';
 
-        // Elementi
-        const postText = document.getElementById('post-text');
-        const fileUpload = document.getElementById('file-upload');
-        const postButton = document.getElementById('post-button');
-        const postsContainer = document.getElementById('posts-container');
-        const messageBox = document.getElementById('message-box');
-        const userBtn = document.getElementById('change-user');
-
-        // Poruka
-        const showMessage = (msg) => {
-            messageBox.textContent = msg;
-            messageBox.style.display = 'block';
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, 3000);
-        };
-
-        // Spremi u LocalStorage
-        function savePosts() {
-            localStorage.setItem('posts', JSON.stringify(posts));
+        function showMessage(msg) {
+            const mb = document.getElementById('message-box');
+            mb.textContent = msg;
+            mb.style.display = 'block';
+            setTimeout(() => { mb.style.display = 'none'; }, 3000);
         }
 
-        // Učitaj iz LocalStorage
-        function loadPosts() {
-            const saved = localStorage.getItem('posts');
-            posts = saved ? JSON.parse(saved) : [];
-            postsContainer.innerHTML = '';
-            posts.forEach(post => renderPost(post, false));
-        }
-
-        // Dodaj post i spremi
-        function addPost(text, file) {
-            const now = new Date();
-            const timestamp = `${now.toLocaleDateString('hr-HR')} ${now.toLocaleTimeString('hr-HR')}`;
-
-            let fileData = null;
-            if (file) {
-                // File data: spremi tip i url
-                fileData = {
-                    name: file.name,
-                    type: file.type,
-                    url: URL.createObjectURL(file)
-                };
-            }
-
-            const post = {
-                user: currentUser,
-                timestamp,
-                text,
-                file: fileData
-            };
-
-            posts.unshift(post);
-            savePosts();
-            renderPost(post, true);
-        }
-
-        // Renderaj jedan post (prepend ako novi)
-        function renderPost(post, prepend = true) {
-            const postElement = document.createElement('div');
-            postElement.className = 'post';
-
-            let fileHtml = '';
-            let isImage = post.file && post.file.type.startsWith('image/');
-
-            if (post.file) {
-                if (isImage) {
-                    fileHtml = `
-                        <a href="#" class="file-link" onclick="toggleImage(this, '${post.file.url}'); return false;">
-                            PRIKAŽI SLIKU: ${post.file.name}
-                        </a>
-                        <img src="" alt="Uploaded image" class="image-preview" style="display: none;">
-                    `;
-                } else {
-                    fileHtml = `
-                        <a href="${post.file.url}" download="${post.file.name}" class="file-link">
-                            PREUZMI FAJL: ${post.file.name}
-                        </a>
-                    `;
-                }
-            }
-
-            postElement.innerHTML = `
-                <div class="post-header">
-                    <span>USER: ${post.user}</span>
-                    <span class="post-timestamp">[${post.timestamp}]</span>
-                </div>
-                <div class="post-text">${post.text.replace(/\n/g, '<br>')}</div>
-                ${fileHtml}
-            `;
-
-            if (prepend)
-                postsContainer.prepend(postElement);
-            else
-                postsContainer.appendChild(postElement);
-        }
-
-        // Promijeni user
-        function setUser() {
+        document.getElementById('change-user').onclick = function() {
             const user = prompt('Unesi svoj nadimak:', currentUser);
-            if (user && user.trim().length > 0) {
+            if (user) {
                 currentUser = user.trim();
                 localStorage.setItem('user', currentUser);
-                showMessage(`User set: ${currentUser}`);
-            }
-        }
-
-        // Prikaz slike
-        window.toggleImage = (linkElement, imageUrl) => {
-            const imgElement = linkElement.nextElementSibling;
-            if (imgElement.style.display === 'none') {
-                imgElement.src = imageUrl;
-                imgElement.style.display = 'block';
-                linkElement.textContent = "SAKRIJ SLIKU";
-            } else {
-                imgElement.style.display = 'none';
-                imgElement.src = '';
-                linkElement.textContent = "PRIKAŽI SLIKU";
+                showMessage('User set: ' + currentUser);
             }
         };
 
-        // Dodavanje posta
-        postButton.addEventListener('click', () => {
-            const text = postText.value.trim();
-            const file = fileUpload.files[0];
-
+        document.getElementById('post-button').onclick = async function() {
+            const text = document.getElementById('post-text').value.trim();
+            const file = document.getElementById('file-upload').files[0];
             if (!text && !file) {
                 showMessage("ERROR: PLEASE ENTER TEXT OR SELECT FILE!");
                 return;
             }
-
-            addPost(text, file);
-
-            postText.value = '';
-            fileUpload.value = '';
+            let fileData = null;
+            if (file) {
+                const storageRef = storage.ref('files/' + Date.now() + '_' + file.name);
+                await storageRef.put(file);
+                const fileUrl = await storageRef.getDownloadURL();
+                fileData = {
+                    name: file.name,
+                    type: file.type,
+                    url: fileUrl
+                };
+            }
+            await db.collection('posts').add({
+                user: currentUser,
+                timestamp: new Date().toISOString(),
+                text: text,
+                file: fileData
+            });
             showMessage("ENTRY SUBMITTED.");
+            document.getElementById('post-text').value = '';
+            document.getElementById('file-upload').value = '';
+        };
+
+        db.collection('posts').orderBy('timestamp','desc').onSnapshot(snapshot => {
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '';
+            snapshot.forEach(doc => {
+                const post = doc.data();
+                let fileHtml = '';
+                if (post.file) {
+                    if (post.file.type && post.file.type.startsWith('image/')) {
+                        fileHtml = `<img src="${post.file.url}" alt="Uploaded image" style="max-width:100%;margin-top:10px;">`;
+                    } else {
+                        fileHtml = `<a href="${post.file.url}" download="${post.file.name}" style="color:#00ffff;">PREUZMI FAJL: ${post.file.name}</a>`;
+                    }
+                }
+                postsContainer.innerHTML += `
+                <div class="post" style="border:1px dashed #00ff00; padding:10px; margin-bottom:10px;">
+                    <div class="post-header" style="font-weight:bold;">
+                        <span>USER: ${post.user}</span>
+                        <span style="float:right;">[${(new Date(post.timestamp)).toLocaleString('hr-HR')}]</span>
+                    </div>
+                    <div class="post-text">${(post.text||'').replace(/\n/g,'<br>')}</div>
+                    ${fileHtml}
+                </div>
+                `;
+            });
         });
-
-        // Promjena usera
-        userBtn.addEventListener('click', setUser);
-
-        // Prvo učitaj postove / dodaj mock ako nema
-        window.onload = () => {
-            loadPosts();
-            if (posts.length === 0) {
-                addPost("WELCOME TO THE LOGICAL INTERFACE OF createElement. THE FUTURE IS HERE.");
-                setTimeout(() => {
-                    addPost("INITIALIZING DATA STREAMS. 404 DATA PACKETS FOUND.");
-                }, 1000);
-            }
-        };
-
-        // Atari sound generator
-        document.getElementById('atari-sound-btn').onclick = function() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'square';
-            osc.frequency.value = 440; // A4 tone, classic beep
-
-            gain.gain.value = 0.2;
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start();
-            setTimeout(() => {
-                osc.stop();
-                ctx.close();
-            }, 180); // 180ms: short retro beep
-        };
-
-        // Random 5 minute Atari-style song generator
-        document.getElementById('random-song-btn').onclick = function() {
-            const status = document.getElementById('song-status');
-            status.textContent = "Playing...";
-
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            let duration = 300; // 5 minutes
-            let notesPerSec = 2;
-            let notesTotal = duration * notesPerSec;
-            let baseFreqs = [220, 330, 440, 660, 880, 1100, 1320, 1760];
-
-            let currentTime = ctx.currentTime;
-            for (let i = 0; i < notesTotal; i++) {
-                let osc = ctx.createOscillator();
-                let gain = ctx.createGain();
-                osc.type = ['square','sawtooth','triangle'][Math.floor(Math.random()*3)];
-                osc.frequency.value = baseFreqs[Math.floor(Math.random() * baseFreqs.length)] * (1 + Math.random()*0.1);
-                gain.gain.value = 0.08 + Math.random()*0.05;
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                let start = currentTime + i / notesPerSec;
-                let noteLength = 0.2 + Math.random()*0.14;
-
-                osc.start(start);
-                osc.stop(start + noteLength);
-                gain.gain.setValueAtTime(gain.gain.value, start + noteLength - 0.03);
-                gain.gain.linearRampToValueAtTime(0.00001, start + noteLength);
-
-                osc.onended = () => gain.disconnect();
-            }
-
-            // Stop status after 5 min
-            setTimeout(()=>{
-                status.textContent = "Done! Refresh page to replay.";
-                ctx.close();
-            }, duration * 1000);
-        };
     </script>
 </body>
 </html>
